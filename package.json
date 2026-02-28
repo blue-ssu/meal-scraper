@@ -1,10 +1,11 @@
 {
-  "name": "food-crawling-library",
+  "name": "@bluessu/meal-scraper",
   "version": "1.0.0",
   "type": "commonjs",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "license": "GPL-3.0-only",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "prepare": "npm run build"
