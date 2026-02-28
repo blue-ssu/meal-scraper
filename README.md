@@ -9,6 +9,10 @@
 
 현재 이 라이브러리는 개발 중인 상태입니다.
 
+## 프로젝트 출처
+
+이 프로젝트의 초기 구현은 [EAT-SSU/Food-Crawling](https://github.com/EAT-SSU/Food-Crawling) 내부 구현을 바탕으로 작성되었습니다.
+
 ## 지원 환경
 
 - Node.js: `>= 18`
