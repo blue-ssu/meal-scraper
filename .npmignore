@@ -1,0 +1,25 @@
+node_modules/
+src/
+e2e/
+test/
+tests/
+
+# Configuration & tooling
+tsconfig.json
+tsup.config.ts
+.env
+.env.*
+.DS_Store
+.eslint*
+.prettier*
+.idea/
+.vscode/
+.github/
+playground.js
+
+# Lock files (if any local variant is needed)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+*.log
