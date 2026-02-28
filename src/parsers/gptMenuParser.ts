@@ -19,31 +19,36 @@ const SYSTEM_PROMPT = `당신은 한국 대학 식당 메뉴 데이터를 정확
 `;
 
 export class GPTMenuParser implements MenuParser {
-  private readonly client: any;
+  private readonly client: Promise<any>;
   private static readonly model = "gpt-5-nano";
 
   constructor(apiKey: string) {
-    let openAIModule: {
-      default?: new (args: { apiKey: string }) => any;
-      OpenAI?: new (args: { apiKey: string }) => any;
-    };
+    const openAI = this.resolveOpenAI(apiKey);
+    this.client = openAI;
+  }
 
+  private async resolveOpenAI(apiKey: string): Promise<any> {
     try {
-      openAIModule = require("openai");
-    } catch {
-      throw new Error(
-        "openai 패키지가 설치되어 있지 않습니다. parser=\"gpt\" 사용 시 `pnpm add openai`가 필요합니다.",
-      );
+      const mod = await import("openai");
+      const OpenAIConstructor = (mod as any).default ?? (mod as any).OpenAI;
+      if (!OpenAIConstructor) {
+        throw new Error(
+          "openai 모듈에서 OpenAI 클래스 초기화를 찾지 못했습니다.",
+        );
+      }
+      return new OpenAIConstructor({ apiKey });
+    } catch (err) {
+      const isModuleNotFound =
+        err instanceof Error &&
+        (err.message.includes("Cannot find module") ||
+          (err as { code?: string }).code === "ERR_MODULE_NOT_FOUND");
+      if (isModuleNotFound) {
+        throw new Error(
+          "openai 패키지가 설치되어 있지 않습니다. parser=\"gpt\" 사용 시 `pnpm add openai`가 필요합니다.",
+        );
+      }
+      throw err;
     }
-
-    const OpenAIConstructor = openAIModule.default ?? openAIModule.OpenAI;
-    if (!OpenAIConstructor) {
-      throw new Error(
-        "openai 모듈에서 OpenAI 클래스 초기화를 찾지 못했습니다.",
-      );
-    }
-
-    this.client = new OpenAIConstructor({ apiKey });
   }
 
   private sanitizeMenuName(menu: string): string {
@@ -104,7 +109,8 @@ export class GPTMenuParser implements MenuParser {
       return [];
     }
 
-    const result = (await this.client.chat.completions.create({
+    const client = await this.client;
+    const result = (await client.chat.completions.create({
       model: GPTMenuParser.model,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
@@ -115,6 +121,10 @@ export class GPTMenuParser implements MenuParser {
       ],
       response_format: { type: "json_object" },
     })) as { choices?: { message?: { content?: string } }[] };
+
+    if (!result?.choices || !result.choices.length) {
+      throw new Error("모델 응답 형식이 올바르지 않습니다.");
+    }
 
     const content = result.choices[0]?.message?.content;
     if (!content) {

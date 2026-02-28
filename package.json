@@ -26,19 +26,19 @@
   "publishConfig": {
     "access": "public"
   },
-  "main": "dist/index.js",
+  "main": "dist/index.cjs",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "require": "./dist/index.js",
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/index.cjs",
+      "import": "./dist/index.mjs"
     }
   },
   "funding": "https://github.com/blue-ssu/meal-scraper",
   "scripts": {
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsup",
     "clean": "rimraf dist",
     "prepare": "pnpm run build",
     "quality": "pnpm run clean && pnpm run typecheck && pnpm run build",
@@ -64,6 +64,7 @@
     "openai": "^4.57.0"
   },
   "devDependencies": {
+    "tsup": "^8.5.0",
     "rimraf": "^5.0.9",
     "typescript": "^5.5.4",
     "@types/node": "^22.7.1"
