@@ -1,6 +1,11 @@
 import { MenuParseException } from '../errors';
 import { MenuParser } from '../interfaces';
-import { ParsedMenuData, createParsedMenuData, RawMenuData } from '../domain';
+import {
+  createDailyMenu,
+  DailyMenu,
+  normalizeMenuSlot,
+  RawMenuData,
+} from '../domain';
 
 const splitItems = (text: string): string[] =>
   text
@@ -11,16 +16,31 @@ const splitItems = (text: string): string[] =>
     .filter(Boolean);
 
 export class NoopMenuParser implements MenuParser {
-  async parseMenu(raw: RawMenuData): Promise<ParsedMenuData> {
+  async parseMenu(raw: RawMenuData): Promise<DailyMenu> {
     try {
-      const menus: Record<string, string[]> = {};
+      const dailyMenu: DailyMenu = createDailyMenu(raw.date, raw.cafeteria, {
+        breakfast: {},
+        lunch: {},
+        dinner: {},
+      });
       for (const [slot, text] of Object.entries(raw.menuTexts)) {
         const items = splitItems(text).filter((item) => /[가-힣]/.test(item));
-        menus[slot] = [...new Set(items)];
+        const slotKey = normalizeMenuSlot(slot);
+        if (!slotKey) continue;
+        dailyMenu[slotKey] = {
+          ...dailyMenu[slotKey],
+          [slot]: [...new Set(items)],
+        };
       }
-      return createParsedMenuData(raw.date, raw.restaurant, menus);
+
+      return dailyMenu;
     } catch (err) {
-      throw new MenuParseException(raw.date, raw.restaurant, '기본 파싱 실패', err as string);
+      throw new MenuParseException(
+        raw.date,
+        raw.cafeteria,
+        '기본 파싱 실패',
+        err as string,
+      );
     }
   }
 }

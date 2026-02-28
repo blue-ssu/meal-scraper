@@ -1,4 +1,4 @@
-import { RestaurantType } from './domain';
+import { CafeteriaType } from './domain';
 
 export interface FoodCrawlerSettings {
   soongguriBaseUrl: string;
@@ -18,13 +18,13 @@ export const defaultSettings: FoodCrawlerSettings = {
   timeoutMs: 15000,
 };
 
-export const getRcd = (type: RestaurantType, settings: FoodCrawlerSettings): number => {
+export const getRcd = (type: CafeteriaType, settings: FoodCrawlerSettings): number => {
   switch (type) {
-    case RestaurantType.HAKSIK:
+    case CafeteriaType.HAKSIK:
       return settings.haksikRcd;
-    case RestaurantType.DODAM:
+    case CafeteriaType.DODAM:
       return settings.dodamRcd;
-    case RestaurantType.FACULTY:
+    case CafeteriaType.FACULTY:
       return settings.facultyRcd;
     default:
       return 0;

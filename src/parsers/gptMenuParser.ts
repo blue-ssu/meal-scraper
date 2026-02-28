@@ -1,6 +1,11 @@
 import { MenuParser } from "../interfaces";
 import { MenuParseException } from "../errors";
-import { createParsedMenuData, RawMenuData } from "../domain";
+import {
+  createDailyMenu,
+  DailyMenu,
+  normalizeMenuSlot,
+  RawMenuData,
+} from "../domain";
 import OpenAI from "openai";
 
 const SYSTEM_PROMPT = `당신은 한국 대학 식당 메뉴 데이터를 정확하게 파싱하는 전문가입니다.
@@ -108,8 +113,12 @@ export class GPTMenuParser implements MenuParser {
       .filter((item) => item.length > 0);
   }
 
-  async parseMenu(raw: RawMenuData) {
-    const menus: Record<string, string[]> = {};
+  async parseMenu(raw: RawMenuData): Promise<DailyMenu> {
+    const menus: { breakfast: Record<string, string[]>; lunch: Record<string, string[]>; dinner: Record<string, string[]> } = {
+      breakfast: {},
+      lunch: {},
+      dinner: {},
+    };
     const errors: Record<string, string> = {};
 
     await Promise.all(
@@ -117,11 +126,13 @@ export class GPTMenuParser implements MenuParser {
         try {
           const unique = new Set<string>();
           const parsed = await this.parseMenuText(text);
+          const slotKey = normalizeMenuSlot(slot);
+          if (!slotKey) return;
+
           parsed.forEach((menu) => unique.add(menu));
-          menus[slot] = Array.from(unique);
+          menus[slotKey][slot] = Array.from(unique);
         } catch (err) {
           errors[slot] = String(err);
-          menus[slot] = [];
         }
       }),
     );
@@ -129,12 +140,12 @@ export class GPTMenuParser implements MenuParser {
     if (Object.keys(errors).length > 0) {
       throw new MenuParseException(
         raw.date,
-        raw.restaurant,
+        raw.cafeteria,
         "일부 슬롯 파싱 실패",
         JSON.stringify(errors),
       );
     }
 
-    return createParsedMenuData(raw.date, raw.restaurant, menus);
+    return createDailyMenu(raw.date, raw.cafeteria, menus);
   }
 }

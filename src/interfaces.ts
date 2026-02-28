@@ -1,14 +1,14 @@
-import { RawMenuData, ParsedMenuData, RestaurantType } from './domain';
+import { DailyMenu, RawMenuData, CafeteriaType } from "./domain";
 
 export interface MenuScraper {
   scrapeMenu(date: string): Promise<RawMenuData>;
 }
 
 export interface MenuParser {
-  parseMenu(raw: RawMenuData): Promise<ParsedMenuData>;
+  parseMenu(raw: RawMenuData): Promise<DailyMenu>;
 }
 
 export interface CrawlerOptions {
-  restaurant: RestaurantType;
+  cafeteria: CafeteriaType;
   date: string;
 }

@@ -1,9 +1,9 @@
-import { RestaurantType } from '../../domain';
+import { CafeteriaType } from '../../domain';
 import { FoodCrawlerSettings } from '../../config';
 import { SoongguriScraper } from './soongguriScraper';
 
 export class HaksikScraper extends SoongguriScraper {
   constructor(settings: FoodCrawlerSettings) {
-    super(settings, RestaurantType.HAKSIK);
+    super(settings, CafeteriaType.HAKSIK);
   }
 }

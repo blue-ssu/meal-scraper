@@ -2,23 +2,13 @@ import { NoopMenuParser } from "./parsers/noopMenuParser";
 import { GPTMenuParser } from "./parsers/gptMenuParser";
 import { FoodScrapingService } from "./services/scrapingService";
 import { FoodCrawlerSettings, defaultSettings } from "./config";
-import {
-  RawMenuData,
-  ParsedMenuData,
-  RestaurantType,
-  TimeSlot,
-} from "./domain";
+import { RawMenuData, DailyMenu, CafeteriaType } from "./domain";
 
 export { FoodScrapingService } from "./services/scrapingService";
 export { FoodCrawlerSettings, defaultSettings } from "./config";
+export { CafeteriaType, RawMenuData, DailyMenu } from "./domain";
 export {
-  RestaurantType,
-  RawMenuData,
-  ParsedMenuData,
-  TimeSlot,
-} from "./domain";
-export {
-  BaseRestaurantException,
+  BaseCafeteriaException,
   HolidayException,
   MenuFetchException,
   MenuParseException,
@@ -31,13 +21,13 @@ export interface CreateLibraryOptions {
 
 export interface FoodCrawlerLibrary {
   scrapeRawMenu: (
-    restaurant: RestaurantType,
+    cafeteria: CafeteriaType,
     date: string,
   ) => Promise<RawMenuData>;
   scrapeParsedMenu: (
-    restaurant: RestaurantType,
+    cafeteria: CafeteriaType,
     date: string,
-  ) => Promise<ParsedMenuData>;
+  ) => Promise<DailyMenu>;
 }
 
 export const createFoodCrawlerLibrary = (
@@ -54,26 +44,25 @@ export const createFoodCrawlerLibrary = (
   const service = new FoodScrapingService(settings, parser);
 
   return {
-    scrapeRawMenu: (restaurant, date) =>
-      service.scrapeRawMenu(restaurant, date),
-    scrapeParsedMenu: (restaurant, date) =>
-      service.scrapeAndParseMenu(restaurant, date),
+    scrapeRawMenu: (cafeteria, date) => service.scrapeRawMenu(cafeteria, date),
+    scrapeParsedMenu: (cafeteria, date) =>
+      service.scrapeAndParseMenu(cafeteria, date),
   };
 };
 
 // 추가: 직접 함수 호출형 API
 export const scrapeRawMenu = (
-  restaurant: RestaurantType,
+  cafeteria: CafeteriaType,
   date: string,
   options?: CreateLibraryOptions,
 ) => {
-  return createFoodCrawlerLibrary(options).scrapeRawMenu(restaurant, date);
+  return createFoodCrawlerLibrary(options).scrapeRawMenu(cafeteria, date);
 };
 
 export const scrapeParsedMenu = (
-  restaurant: RestaurantType,
+  cafeteria: CafeteriaType,
   date: string,
   options?: CreateLibraryOptions,
 ) => {
-  return createFoodCrawlerLibrary(options).scrapeParsedMenu(restaurant, date);
+  return createFoodCrawlerLibrary(options).scrapeParsedMenu(cafeteria, date);
 };

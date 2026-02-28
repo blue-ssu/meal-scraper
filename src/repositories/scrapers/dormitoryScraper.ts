@@ -1,6 +1,6 @@
 import axios from "axios";
 import { MenuScraper } from "../../interfaces";
-import { RestaurantType, RawMenuData } from "../../domain";
+import { CafeteriaType, RawMenuData } from "../../domain";
 import { MenuFetchException } from "../../errors";
 import { make2dFromHtml } from "../../utils/parsing";
 
@@ -49,7 +49,7 @@ export class DormitoryScraper implements MenuScraper {
 
         matched = {
           date: dateStr,
-          restaurant: RestaurantType.DORMITORY,
+          cafeteria: CafeteriaType.DORMITORY,
           menuTexts,
         };
         break;
@@ -58,7 +58,7 @@ export class DormitoryScraper implements MenuScraper {
       if (!matched) {
         throw new MenuFetchException(
           date,
-          RestaurantType.DORMITORY,
+          CafeteriaType.DORMITORY,
           "요청한 날짜의 메뉴가 없습니다",
         );
       }
@@ -67,7 +67,7 @@ export class DormitoryScraper implements MenuScraper {
     } catch (err) {
       throw new MenuFetchException(
         date,
-        RestaurantType.DORMITORY,
+        CafeteriaType.DORMITORY,
         "기숙사 메뉴 파싱 실패",
         err as unknown,
       );

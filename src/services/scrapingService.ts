@@ -1,9 +1,16 @@
 import { MenuParser, MenuScraper } from "../interfaces";
-import { RawMenuData, ParsedMenuData, RestaurantType } from "../domain";
 import {
+  CafeteriaStatus,
+  createDailyMenu,
+  DailyMenu,
+  RawMenuData,
+  CafeteriaType,
+} from "../domain";
+import {
+  BaseCafeteriaException,
+  HolidayException,
   MenuFetchException,
   MenuParseException,
-  BaseRestaurantException,
 } from "../errors";
 import { HaksikScraper } from "../repositories/scrapers/haksikScraper";
 import { DodamScraper } from "../repositories/scrapers/dodamScraper";
@@ -17,37 +24,37 @@ export class FoodScrapingService {
     private readonly parser: MenuParser,
   ) {}
 
-  private createScraper(restaurantType: RestaurantType): MenuScraper {
-    if (restaurantType === RestaurantType.HAKSIK) {
+  private createScraper(cafeteriaType: CafeteriaType): MenuScraper {
+    if (cafeteriaType === CafeteriaType.HAKSIK) {
       return new HaksikScraper(this.settings);
     }
-    if (restaurantType === RestaurantType.DODAM) {
+    if (cafeteriaType === CafeteriaType.DODAM) {
       return new DodamScraper(this.settings);
     }
-    if (restaurantType === RestaurantType.FACULTY) {
+    if (cafeteriaType === CafeteriaType.FACULTY) {
       return new FacultyScraper(this.settings);
     }
-    if (restaurantType === RestaurantType.DORMITORY) {
+    if (cafeteriaType === CafeteriaType.DORMITORY) {
       return new DormitoryScraper(
         this.settings.dormitoryBaseUrl,
         this.settings.timeoutMs,
       );
     }
-    throw new Error(`Unsupported restaurant: ${restaurantType}`);
+    throw new Error(`Unsupported cafeteria: ${cafeteriaType}`);
   }
 
   async scrapeRawMenu(
-    restaurantType: RestaurantType,
+    cafeteriaType: CafeteriaType,
     date: string,
   ): Promise<RawMenuData> {
     try {
-      const scraper = this.createScraper(restaurantType);
+      const scraper = this.createScraper(cafeteriaType);
       return await scraper.scrapeMenu(date);
     } catch (err) {
-      if (err instanceof BaseRestaurantException) throw err;
+      if (err instanceof BaseCafeteriaException) throw err;
       throw new MenuFetchException(
         date,
-        restaurantType,
+        cafeteriaType,
         "scrape 실패",
         err as unknown,
       );
@@ -55,21 +62,37 @@ export class FoodScrapingService {
   }
 
   async scrapeAndParseMenu(
-    restaurantType: RestaurantType,
+    cafeteriaType: CafeteriaType,
     date: string,
-  ): Promise<ParsedMenuData> {
-    const raw = await this.scrapeRawMenu(restaurantType, date);
-    return this.parse(raw);
+  ): Promise<DailyMenu> {
+    try {
+      const raw = await this.scrapeRawMenu(cafeteriaType, date);
+      return await this.parse(raw);
+    } catch (err) {
+      if (err instanceof HolidayException) {
+        return createDailyMenu(
+          date,
+          cafeteriaType,
+          {
+            breakfast: {},
+            lunch: {},
+            dinner: {},
+          },
+          CafeteriaStatus.Closed,
+        );
+      }
+      throw err;
+    }
   }
 
-  private async parse(raw: RawMenuData): Promise<ParsedMenuData> {
+  private async parse(raw: RawMenuData): Promise<DailyMenu> {
     try {
       return await this.parser.parseMenu(raw);
     } catch (err) {
-      if (err instanceof BaseRestaurantException) throw err;
+      if (err instanceof BaseCafeteriaException) throw err;
       throw new MenuParseException(
         raw.date,
-        raw.restaurant,
+        raw.cafeteria,
         "parse 실패",
         err as unknown,
       );

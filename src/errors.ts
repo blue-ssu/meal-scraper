@@ -1,14 +1,14 @@
-export class BaseRestaurantException extends Error {
+export class BaseCafeteriaException extends Error {
   constructor(
     public readonly targetDate: string,
-    public readonly restaurant: string,
+    public readonly cafeteria: string,
     message: string,
     public readonly rawData?: unknown,
   ) {
-    super(`${restaurant}(${targetDate}) ${message}`);
+    super(`${cafeteria}(${targetDate}) ${message}`);
   }
 }
 
-export class HolidayException extends BaseRestaurantException {}
-export class MenuFetchException extends BaseRestaurantException {}
-export class MenuParseException extends BaseRestaurantException {}
+export class HolidayException extends BaseCafeteriaException {}
+export class MenuFetchException extends BaseCafeteriaException {}
+export class MenuParseException extends BaseCafeteriaException {}
