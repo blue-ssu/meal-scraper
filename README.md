@@ -71,8 +71,8 @@ import {
 
 const client = createMealClient();
 await client.getRawMenu(CafeteriaType.DODAM, new Date());
-await client.getDailyMenu(CafeteriaType.HAKSIK, "20260228");
-await client.getDailyMenusByRange(CafeteriaType.FACULTY, "20260228", "20260302", {
+await client.getDailyMenu(CafeteriaType.HAKSIK, "2026-02-28");
+await client.getDailyMenusByRange(CafeteriaType.FACULTY, "2026-02-28", "2026-03-02", {
   concurrency: 3,
 });
 ```
@@ -120,13 +120,13 @@ const customClient = createMealClient({
 ```ts
 import { normalizeMenuDate, buildDateRange } from "@bluessu/meal-scraper";
 
-normalizeMenuDate("2026-02-28"); // "20260228"
-normalizeMenuDate(new Date(2026, 1, 28)); // "20260228"
+normalizeMenuDate("2026-02-28"); // "2026-02-28"
+normalizeMenuDate(new Date(2026, 1, 28)); // "2026-02-28"
 
-buildDateRange("20260228", "20260302"); // ["20260228","20260229","20260301","20260302"]
+buildDateRange("2026-02-28", "2026-03-02"); // ["2026-02-28","2026-03-01","2026-03-02"]
 ```
 
-지원 날짜 포맷은 내부적으로 모두 `YYYYMMDD`로 정규화됩니다.
+지원 날짜 포맷은 내부적으로 모두 `YYYY-MM-DD`로 정규화됩니다.
 
 ## API 목록
 

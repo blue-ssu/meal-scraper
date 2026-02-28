@@ -1,6 +1,42 @@
 import { MenuDate, MenuDateInput } from "./types";
 
-const MENU_DATE_RE = /^\d{8}$/;
+const MENU_DATE_COMPACT_RE = /^\d{8}$/;
+const MENU_DATE_ISO_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+const toDate = (value: string): Date => {
+  if (MENU_DATE_COMPACT_RE.test(value)) {
+    const year = Number(value.slice(0, 4));
+    const month = Number(value.slice(4, 6));
+    const day = Number(value.slice(6, 8));
+    const date = new Date(year, month - 1, day);
+    const isValidDate =
+      date.getFullYear() === year &&
+      date.getMonth() === month - 1 &&
+      date.getDate() === day;
+    if (!isValidDate) {
+      throw new RangeError(`invalid menu date: ${value}`);
+    }
+    return date;
+  }
+
+  if (MENU_DATE_ISO_RE.test(value)) {
+    const [y, m, d] = value.split("-");
+    const year = Number(y);
+    const month = Number(m);
+    const day = Number(d);
+    const date = new Date(year, month - 1, day);
+    const isValidDate =
+      date.getFullYear() === year &&
+      date.getMonth() === month - 1 &&
+      date.getDate() === day;
+    if (!isValidDate) {
+      throw new RangeError(`invalid menu date: ${value}`);
+    }
+    return date;
+  }
+
+  throw new RangeError(`invalid menu date: ${value}`);
+};
 
 export const normalizeMenuDate = (input: MenuDateInput): MenuDate => {
   let date: Date;
@@ -8,19 +44,8 @@ export const normalizeMenuDate = (input: MenuDateInput): MenuDate => {
   if (input instanceof Date) {
     date = input;
   } else if (typeof input === "string") {
-    if (MENU_DATE_RE.test(input)) {
-      const year = Number(input.slice(0, 4));
-      const month = Number(input.slice(4, 6));
-      const day = Number(input.slice(6, 8));
-      date = new Date(year, month - 1, day);
-
-      const isValidDate =
-        date.getFullYear() === year &&
-        date.getMonth() === month - 1 &&
-        date.getDate() === day;
-      if (!isValidDate) {
-        throw new RangeError(`invalid menu date: ${input}`);
-      }
+    if (MENU_DATE_COMPACT_RE.test(input) || MENU_DATE_ISO_RE.test(input)) {
+      date = toDate(input);
     } else {
       date = new Date(input);
     }
@@ -35,28 +60,15 @@ export const normalizeMenuDate = (input: MenuDateInput): MenuDate => {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, "0");
   const d = String(date.getDate()).padStart(2, "0");
-  return `${y}${m}${d}`;
+  return `${y}-${m}-${d}`;
 };
 
 export const buildDateRange = (start: MenuDate, end: MenuDate): MenuDate[] => {
   const parse = (value: MenuDate): Date => {
-    if (!MENU_DATE_RE.test(value)) {
+    if (!MENU_DATE_COMPACT_RE.test(value) && !MENU_DATE_ISO_RE.test(value)) {
       throw new RangeError(`invalid menu date: ${value}`);
     }
-
-    const year = Number(value.slice(0, 4));
-    const month = Number(value.slice(4, 6));
-    const day = Number(value.slice(6, 8));
-    const date = new Date(year, month - 1, day);
-    const isValidDate =
-      date.getFullYear() === year &&
-      date.getMonth() === month - 1 &&
-      date.getDate() === day;
-
-    if (!isValidDate) {
-      throw new RangeError(`invalid menu date: ${value}`);
-    }
-    return date;
+    return toDate(value);
   };
 
   const startDate = parse(start);

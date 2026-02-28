@@ -39,7 +39,7 @@ export class DormitoryScraper implements MenuScraper {
       let matched: RawMenuData | undefined;
 
       for (const row of parsedRows) {
-        const dateStr = parseDateToken(row["날짜"]);
+        const dateStr = parseDateTokenKey(row["날짜"]);
         if (!dateStr) continue;
 
         const menuTexts = extractMenuTexts(row);
@@ -105,6 +105,22 @@ const detectEncoding = (res: {
 };
 
 const parseDate = (date: string): Date => {
+  if (/^\d{8}$/.test(date)) {
+    const year = Number(date.slice(0, 4));
+    const month = Number(date.slice(4, 6));
+    const day = Number(date.slice(6, 8));
+    return new Date(year, month - 1, day);
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    const [year, month, day] = date.split("-");
+    return new Date(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+    );
+  }
+
   return new Date(date);
 };
 
@@ -112,16 +128,59 @@ const formatDateKey = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
-  return `${year}${month}${day}`;
+  return `${year}-${month}-${day}`;
 };
 
-const parseDateToken = (value: string | undefined): string => {
+const parseDateTokenKey = (value: string | undefined): string => {
   if (!value) return "";
-  const clean = value.split(/\s+/)[0].replace(/-/g, "");
-  if (clean.length === 8) return clean;
-  if (clean.length === 4) {
+  const trimmed = value.split(/\s+/)[0];
+  const withDash = trimmed.replace(/[.]/g, "-");
+  if (/^\d{4}-\d{2}-\d{2}$/.test(withDash)) {
+    return withDash;
+  }
+  const compact = withDash.replace(/-/g, "");
+  if (/^\d{8}$/.test(compact)) {
+    const year = Number(compact.slice(0, 4));
+    const month = Number(compact.slice(4, 6));
+    const day = Number(compact.slice(6, 8));
+    const parsed = new Date(year, month - 1, day);
+    if (
+      parsed.getFullYear() !== year ||
+      parsed.getMonth() !== month - 1 ||
+      parsed.getDate() !== day
+    ) {
+      return "";
+    }
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+  if (/^\d{4}$/.test(compact)) {
     const year = new Date().getFullYear();
-    return `${year}${clean}`;
+    const month = Number(compact.slice(0, 2));
+    const day = Number(compact.slice(2, 4));
+    const parsed = new Date(year, month - 1, day);
+    if (
+      parsed.getFullYear() !== year ||
+      parsed.getMonth() !== month - 1 ||
+      parsed.getDate() !== day
+    ) {
+      return "";
+    }
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+  }
+  if (/^\d{2}-\d{2}$/.test(withDash)) {
+    const [monthPart, dayPart] = withDash.split("-");
+    const year = new Date().getFullYear();
+    const month = Number(monthPart);
+    const day = Number(dayPart);
+    const parsed = new Date(year, month - 1, day);
+    if (
+      parsed.getFullYear() !== year ||
+      parsed.getMonth() !== month - 1 ||
+      parsed.getDate() !== day
+    ) {
+      return "";
+    }
+    return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
   }
   return "";
 };
