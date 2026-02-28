@@ -75,7 +75,6 @@ export class GPTMenuParser implements MenuParser {
       return [];
     }
 
-    console.log(text);
     const normalizedText = this.normalizeTextForParsing(text);
     if (!normalizedText) {
       return [];
