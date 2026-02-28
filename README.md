@@ -5,12 +5,34 @@
 [![license](https://img.shields.io/npm/l/@bluessu/meal-scraper.svg)](./LICENSE)
 [![TypeScript](https://img.shields.io/badge/language-TypeScript-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
+## 지원 환경
+
+- Node.js: `>= 18`
+- 공개 라이선스: GPL-3.0
+- OpenAI 파서를 사용하려면 프로젝트에 `openai`가 별도 설치되어 있어야 합니다. (`openai`는 선택 의존성입니다)
+
+## 배포/릴리스
+
+패키지 배포는 다음 스크립트를 사용합니다.
+
+```bash
+pnpm run release:patch
+pnpm run release:minor
+pnpm run release:major
+```
+
 ## 설치
 
 Using npm:
 
 ```bash
 npm i @bluessu/meal-scraper
+```
+
+GPT 파서를 사용하려면 먼저 OpenAI 클라이언트를 설치하세요.
+
+```bash
+pnpm add openai
 ```
 
 Using yarn

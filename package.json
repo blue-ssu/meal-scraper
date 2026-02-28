@@ -27,17 +27,26 @@
     "access": "public"
   },
   "main": "dist/index.js",
-  "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "funding": "https://github.com/blue-ssu/meal-scraper",
   "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "build": "tsc -p tsconfig.json",
     "clean": "rimraf dist",
-    "prepare": "npm run build",
-    "prepublishOnly": "npm run clean && npm run build",
-    "prepack": "npm run clean && npm run build",
-    "release:patch": "npm version patch && npm publish --access public",
-    "release:minor": "npm version minor && npm publish --access public",
-    "release:major": "npm version major && npm publish --access public"
+    "prepare": "pnpm run build",
+    "quality": "pnpm run clean && pnpm run typecheck && pnpm run build",
+    "prepublishOnly": "pnpm run quality",
+    "prepack": "pnpm run quality",
+    "release:patch": "pnpm version patch && pnpm publish --access public",
+    "release:minor": "pnpm version minor && pnpm publish --access public",
+    "release:major": "pnpm version major && pnpm publish --access public"
   },
   "files": [
     "dist",
@@ -49,7 +58,9 @@
   },
   "dependencies": {
     "axios": "^1.13.6",
-    "cheerio": "^1.2.0",
+    "cheerio": "^1.2.0"
+  },
+  "optionalDependencies": {
     "openai": "^4.57.0"
   },
   "devDependencies": {

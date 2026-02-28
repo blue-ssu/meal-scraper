@@ -18,3 +18,4 @@ export {
   MenuFetchException,
   MenuParseException,
 } from "./errors";
+export { MenuParser, MenuScraper, CrawlerOptions } from "./interfaces";

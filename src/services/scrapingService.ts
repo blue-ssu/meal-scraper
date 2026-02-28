@@ -17,11 +17,13 @@ import { DodamScraper } from "../repositories/scrapers/dodamScraper";
 import { FacultyScraper } from "../repositories/scrapers/facultyScraper";
 import { DormitoryScraper } from "../repositories/scrapers/dormitoryScraper";
 import { FoodCrawlerSettings, defaultSettings } from "../config";
+import { ParserMode } from "../client/types";
 
 export class FoodScrapingService {
   constructor(
     private readonly settings: FoodCrawlerSettings = defaultSettings,
     private readonly parser: MenuParser,
+    private readonly parserMode: ParserMode = "noop",
   ) {}
 
   private createScraper(cafeteriaType: CafeteriaType): MenuScraper {
@@ -57,6 +59,11 @@ export class FoodScrapingService {
         cafeteriaType,
         "scrape 실패",
         err as unknown,
+        {
+          targetDate: date,
+          cafeteria: cafeteriaType,
+          operation: "scrape",
+        },
       );
     }
   }
@@ -89,12 +96,27 @@ export class FoodScrapingService {
     try {
       return await this.parser.parseMenu(raw);
     } catch (err) {
-      if (err instanceof BaseCafeteriaException) throw err;
+      if (err instanceof BaseCafeteriaException) {
+        err.context = {
+          ...err.context,
+          parserMode: this.parserMode,
+          operation: "parse",
+          targetDate: raw.date,
+          cafeteria: raw.cafeteria,
+        };
+        throw err;
+      }
       throw new MenuParseException(
         raw.date,
         raw.cafeteria,
         "parse 실패",
         err as unknown,
+        {
+          parserMode: this.parserMode,
+          operation: "parse",
+          targetDate: raw.date,
+          cafeteria: raw.cafeteria,
+        },
       );
     }
   }

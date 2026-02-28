@@ -36,7 +36,7 @@ export class MealClient {
       parser = new NoopMenuParser();
     }
 
-    this.service = new FoodScrapingService(settings, parser);
+    this.service = new FoodScrapingService(settings, parser, parserMode);
   }
 
   getRawMenu(

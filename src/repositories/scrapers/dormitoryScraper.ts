@@ -1,7 +1,11 @@
 import axios from "axios";
 import { MenuScraper } from "../../interfaces";
 import { CafeteriaType, RawMenuData } from "../../domain";
-import { HolidayException, MenuFetchException } from "../../errors";
+import {
+  BaseCafeteriaException,
+  HolidayException,
+  MenuFetchException,
+} from "../../errors";
 import { make2dFromHtml } from "../../utils/parsing";
 
 export class DormitoryScraper implements MenuScraper {
@@ -13,20 +17,21 @@ export class DormitoryScraper implements MenuScraper {
   async scrapeMenu(date: string): Promise<RawMenuData> {
     const dt = parseDate(date);
     const targetDate = formatDateKey(dt);
-
-    const res = await axios.get<ArrayBuffer>(this.baseUrl, {
-      params: {
-        viewform: "B0001_foodboard_list",
-        gyear: dt.getFullYear(),
-        gmonth: dt.getMonth() + 1,
-        gday: dt.getDate(),
-      },
-      timeout: this.timeoutMs,
-      responseType: "arraybuffer",
-      validateStatus: (s) => s >= 200 && s < 300,
-    });
+    const endpoint = this.baseUrl;
 
     try {
+      const res = await axios.get<ArrayBuffer>(this.baseUrl, {
+        params: {
+          viewform: "B0001_foodboard_list",
+          gyear: dt.getFullYear(),
+          gmonth: dt.getMonth() + 1,
+          gday: dt.getDate(),
+        },
+        timeout: this.timeoutMs,
+        responseType: "arraybuffer",
+        validateStatus: (s) => s >= 200 && s < 300,
+      });
+
       const bytes = new Uint8Array(res.data);
       const encoding = detectEncoding({
         data: res.data,
@@ -55,25 +60,50 @@ export class DormitoryScraper implements MenuScraper {
         break;
       }
 
-      if (!matched) {
-        throw new MenuFetchException(
-          date,
-          CafeteriaType.DORMITORY,
-          "요청한 날짜의 메뉴가 없습니다",
-        );
-      }
+        if (!matched) {
+          throw new MenuFetchException(
+            date,
+            CafeteriaType.DORMITORY,
+            "요청한 날짜의 메뉴가 없습니다",
+            undefined,
+            {
+              endpoint,
+              operation: "match",
+              cafeteria: CafeteriaType.DORMITORY,
+            },
+          );
+        }
 
-      return matched;
+        return matched;
     } catch (err) {
       if (err instanceof HolidayException) {
         throw err;
       }
+      if (err instanceof BaseCafeteriaException) {
+        throw err;
+      }
+
+      const raw = err as {
+        status?: number;
+        response?: { status?: number; statusText?: string };
+      };
+      const statusCode = raw?.status ?? raw?.response?.status;
+      const statusText = raw?.response?.statusText;
 
       throw new MenuFetchException(
         date,
         CafeteriaType.DORMITORY,
         "기숙사 메뉴 파싱 실패",
         err as unknown,
+        {
+          endpoint,
+          operation: "parse",
+          cafeteria: CafeteriaType.DORMITORY,
+          timeoutMs: this.timeoutMs,
+          targetDate,
+          statusCode,
+          statusText,
+        },
       );
     }
   }

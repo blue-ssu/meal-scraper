@@ -6,7 +6,6 @@ import {
   normalizeMenuSlot,
   RawMenuData,
 } from "../domain";
-import OpenAI from "openai";
 
 const SYSTEM_PROMPT = `당신은 한국 대학 식당 메뉴 데이터를 정확하게 파싱하는 전문가입니다.
 - 메뉴명만 추출해서 아래 JSON 형식으로 반환:
@@ -20,11 +19,31 @@ const SYSTEM_PROMPT = `당신은 한국 대학 식당 메뉴 데이터를 정확
 `;
 
 export class GPTMenuParser implements MenuParser {
-  private readonly client: OpenAI;
+  private readonly client: any;
   private static readonly model = "gpt-5-nano";
 
   constructor(apiKey: string) {
-    this.client = new OpenAI({ apiKey });
+    let openAIModule: {
+      default?: new (args: { apiKey: string }) => any;
+      OpenAI?: new (args: { apiKey: string }) => any;
+    };
+
+    try {
+      openAIModule = require("openai");
+    } catch {
+      throw new Error(
+        "openai 패키지가 설치되어 있지 않습니다. parser=\"gpt\" 사용 시 `pnpm add openai`가 필요합니다.",
+      );
+    }
+
+    const OpenAIConstructor = openAIModule.default ?? openAIModule.OpenAI;
+    if (!OpenAIConstructor) {
+      throw new Error(
+        "openai 모듈에서 OpenAI 클래스 초기화를 찾지 못했습니다.",
+      );
+    }
+
+    this.client = new OpenAIConstructor({ apiKey });
   }
 
   private sanitizeMenuName(menu: string): string {
@@ -85,7 +104,7 @@ export class GPTMenuParser implements MenuParser {
       return [];
     }
 
-    const result = await this.client.chat.completions.create({
+    const result = (await this.client.chat.completions.create({
       model: GPTMenuParser.model,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
@@ -95,7 +114,7 @@ export class GPTMenuParser implements MenuParser {
         },
       ],
       response_format: { type: "json_object" },
-    });
+    })) as { choices?: { message?: { content?: string } }[] };
 
     const content = result.choices[0]?.message?.content;
     if (!content) {
