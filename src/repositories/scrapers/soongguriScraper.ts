@@ -12,7 +12,8 @@ export class SoongguriScraper implements MenuScraper {
   ) {}
 
   async scrapeMenu(date: string) {
-    const url = `${this.settings.soongguriBaseUrl}?rcd=${getRcd(this.restaurantType, this.settings)}&sdt=${date}`;
+    const normalizedDate = normalizeSgDate(date);
+    const url = `${this.settings.soongguriBaseUrl}?rcd=${getRcd(this.restaurantType, this.settings)}&sdt=${normalizedDate}`;
 
     const res = await axios.get(url, {
       timeout: this.settings.timeoutMs,
@@ -40,3 +41,8 @@ export class SoongguriScraper implements MenuScraper {
     };
   }
 }
+
+const normalizeSgDate = (date: string): string => {
+  const digits = date.replace(/\D/g, '').slice(0, 8);
+  return digits.length === 8 ? digits : date;
+};

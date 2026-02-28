@@ -7,18 +7,43 @@ export const parseTableToDict = (html: string): Record<string, string> => {
   const $ = cheerio.load(html);
   const result: Record<string, string> = {};
 
-  $("tr").each((_, tr) => {
-    const menuSlot = $(tr).find("td.menu_nm").first().text().trim();
-    if (!menuSlot) return;
-    const rowText = $(tr)
-      .find("*")
-      .contents()
-      .toArray()
-      .map((node) => $(node).text())
-      .join(" ");
-    const cleaned = normalizeText(rowText);
-    result[menuSlot] = cleaned;
-  });
+  const parseWithMenuClass = () => {
+    $("tr").each((_, tr) => {
+      const menuSlot = $(tr).find("td.menu_nm").first().text().trim();
+      if (!menuSlot) return;
+      const rowText = $(tr)
+        .find("*")
+        .contents()
+        .toArray()
+        .map((node) => $(node).text())
+        .join(" ");
+      const cleaned = normalizeText(rowText);
+      result[menuSlot] = cleaned;
+    });
+  };
+
+  const parseFallbackRows = () => {
+    const slotKeywords = /조식|중식|석식|점심|저녁|아침/;
+    $("tr").each((_, tr) => {
+      const cells = $(tr).find("td, th").toArray();
+      if (cells.length < 2) return;
+
+      const key = normalizeText($(cells[0]).text());
+      if (!key || !slotKeywords.test(key)) return;
+
+      const values = cells.slice(1)
+        .map((cell) => normalizeText($(cell).text()))
+        .filter((value) => value.length > 0)
+        .join(" ");
+      if (!values) return;
+      result[key] = values;
+    });
+  };
+
+  parseWithMenuClass();
+  if (!Object.keys(result).length) {
+    parseFallbackRows();
+  }
 
   return result;
 };
