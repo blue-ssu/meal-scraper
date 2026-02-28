@@ -1,7 +1,7 @@
 import axios from "axios";
 import { MenuScraper } from "../../interfaces";
 import { CafeteriaType, RawMenuData } from "../../domain";
-import { MenuFetchException } from "../../errors";
+import { HolidayException, MenuFetchException } from "../../errors";
 import { make2dFromHtml } from "../../utils/parsing";
 
 export class DormitoryScraper implements MenuScraper {
@@ -65,6 +65,10 @@ export class DormitoryScraper implements MenuScraper {
 
       return matched;
     } catch (err) {
+      if (err instanceof HolidayException) {
+        throw err;
+      }
+
       throw new MenuFetchException(
         date,
         CafeteriaType.DORMITORY,

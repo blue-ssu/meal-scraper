@@ -14,25 +14,19 @@ export {
   MenuParseException,
 } from "./errors";
 
-export interface CreateLibraryOptions {
+export interface MealScraperOptions {
   settings?: Partial<FoodCrawlerSettings>;
   gptApiKey?: string;
 }
 
-export interface FoodCrawlerLibrary {
-  scrapeRawMenu: (
-    cafeteria: CafeteriaType,
-    date: string,
-  ) => Promise<RawMenuData>;
-  scrapeParsedMenu: (
-    cafeteria: CafeteriaType,
-    date: string,
-  ) => Promise<DailyMenu>;
+export interface MealScraper {
+  getRawMenu: (cafeteria: CafeteriaType, date: string) => Promise<RawMenuData>;
+  getParsedMenu: (cafeteria: CafeteriaType, date: string) => Promise<DailyMenu>;
 }
 
-export const createFoodCrawlerLibrary = (
-  options: CreateLibraryOptions = {},
-): FoodCrawlerLibrary => {
+export const createMealScraper = (
+  options: MealScraperOptions = {},
+): MealScraper => {
   const settings: FoodCrawlerSettings = {
     ...defaultSettings,
     ...options.settings,
@@ -44,25 +38,24 @@ export const createFoodCrawlerLibrary = (
   const service = new FoodScrapingService(settings, parser);
 
   return {
-    scrapeRawMenu: (cafeteria, date) => service.scrapeRawMenu(cafeteria, date),
-    scrapeParsedMenu: (cafeteria, date) =>
+    getRawMenu: (cafeteria, date) => service.scrapeRawMenu(cafeteria, date),
+    getParsedMenu: (cafeteria, date) =>
       service.scrapeAndParseMenu(cafeteria, date),
   };
 };
 
-// 추가: 직접 함수 호출형 API
-export const scrapeRawMenu = (
+export const getRawMenu = (
   cafeteria: CafeteriaType,
   date: string,
-  options?: CreateLibraryOptions,
+  options?: MealScraperOptions,
 ) => {
-  return createFoodCrawlerLibrary(options).scrapeRawMenu(cafeteria, date);
+  return createMealScraper(options).getRawMenu(cafeteria, date);
 };
 
-export const scrapeParsedMenu = (
+export const getDailyMenu = (
   cafeteria: CafeteriaType,
   date: string,
-  options?: CreateLibraryOptions,
+  options?: MealScraperOptions,
 ) => {
-  return createFoodCrawlerLibrary(options).scrapeParsedMenu(cafeteria, date);
+  return createMealScraper(options).getParsedMenu(cafeteria, date);
 };
