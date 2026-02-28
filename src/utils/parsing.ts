@@ -1,0 +1,118 @@
+import * as cheerio from "cheerio";
+
+export const normalizeText = (v: string): string =>
+  v.replace(/\r/g, "").replace(/\n+/g, " ").replace(/\s+/g, " ").trim();
+
+export const parseTableToDict = (html: string): Record<string, string> => {
+  const $ = cheerio.load(html);
+  const result: Record<string, string> = {};
+
+  const parseWithMenuClass = () => {
+    $("tr").each((_, tr) => {
+      const menuSlot = $(tr).find("td.menu_nm").first().text().trim();
+      if (!menuSlot) return;
+      const rowText = $(tr)
+        .find("*")
+        .contents()
+        .toArray()
+        .map((node) => $(node).text())
+        .join(" ");
+      const cleaned = normalizeText(rowText);
+      result[menuSlot] = cleaned;
+    });
+  };
+
+  const parseFallbackRows = () => {
+    const slotKeywords = /조식|중식|석식|점심|저녁|아침/;
+    $("tr").each((_, tr) => {
+      const cells = $(tr).find("td, th").toArray();
+      if (cells.length < 2) return;
+
+      const key = normalizeText($(cells[0]).text());
+      if (!key || !slotKeywords.test(key)) return;
+
+      const values = cells
+        .slice(1)
+        .map((cell) => normalizeText($(cell).text()))
+        .filter((value) => value.length > 0)
+        .join(" ");
+      if (!values) return;
+      result[key] = values;
+    });
+  };
+
+  parseWithMenuClass();
+  if (!Object.keys(result).length) {
+    parseFallbackRows();
+  }
+
+  return result;
+};
+
+export const stripStringFromDict = (
+  menuDict: Record<string, string>,
+): Record<string, string> => {
+  const out: Record<string, string> = {};
+  for (const [key, value] of Object.entries(menuDict)) {
+    out[key] = normalizeText(value);
+  }
+  return out;
+};
+
+export const make2d = (tableHtml: string | null): string[][] => {
+  if (!tableHtml) return [];
+  let $ = cheerio.load(tableHtml);
+  let rows = $("tr");
+
+  if (!rows.length) {
+    $ = cheerio.load(`<table>${tableHtml}</table>`);
+    rows = $("tr");
+  }
+
+  const matrix: string[][] = [];
+  const toSpan = (value: string | undefined): number => {
+    const v = Number.parseInt(value ?? "1", 10);
+    return Number.isNaN(v) || v < 1 ? 1 : v;
+  };
+
+  rows.each((rIdx, tr) => {
+    const rowCells = $(tr).children("th,td");
+
+    if (!matrix[rIdx]) matrix[rIdx] = [];
+
+    let cIdx = 0;
+    rowCells.each((_, cell) => {
+      while (matrix[rIdx][cIdx] !== undefined) cIdx += 1;
+
+      const txt = normalizeText($(cell).text());
+      const colspan = toSpan($(cell).attr("colspan"));
+      const rowspan = toSpan($(cell).attr("rowspan"));
+
+      for (let cc = 0; cc < colspan; cc++) {
+        matrix[rIdx][cIdx + cc] = txt;
+      }
+
+      for (let rr = 1; rr < rowspan; rr++) {
+        const targetRow = rIdx + rr;
+        if (!matrix[targetRow]) matrix[targetRow] = [];
+        for (let cc = 0; cc < colspan; cc++) {
+          matrix[targetRow][cIdx + cc] = txt;
+        }
+      }
+
+      cIdx += colspan;
+    });
+  });
+
+  return matrix.map((row) => row.map((v) => normalizeText(v ?? "")));
+};
+
+export const make2dFromHtml = (html: string): string[][] => {
+  const $ = cheerio.load(html);
+  const table = $("table.boxstyle02").first();
+  if (!table.length) return [];
+  const tableHtml = table.html();
+  if (!tableHtml) return [];
+
+  return make2d(tableHtml);
+};
