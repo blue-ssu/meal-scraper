@@ -5,6 +5,10 @@
 [![license](https://img.shields.io/npm/l/@bluessu/meal-scraper.svg)](./LICENSE)
 [![TypeScript](https://img.shields.io/badge/language-TypeScript-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
+## WIP (Working In Progress)
+
+현재 이 라이브러리는 개발 중인 상태입니다.
+
 ## 지원 환경
 
 - Node.js: `>= 18`
