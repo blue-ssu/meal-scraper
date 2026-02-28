@@ -1,11 +1,15 @@
-import { MenuParser, MenuScraper } from '../interfaces';
-import { RawMenuData, ParsedMenuData, RestaurantType } from '../domain';
-import { MenuFetchException, MenuParseException, BaseRestaurantException } from '../errors';
-import { HaksikScraper } from '../repositories/scrapers/haksikScraper';
-import { DodamScraper } from '../repositories/scrapers/dodamScraper';
-import { FacultyScraper } from '../repositories/scrapers/facultyScraper';
-import { DormitoryScraper } from '../repositories/scrapers/dormitoryScraper';
-import { FoodCrawlerSettings, defaultSettings } from '../config';
+import { MenuParser, MenuScraper } from "../interfaces";
+import { RawMenuData, ParsedMenuData, RestaurantType } from "../domain";
+import {
+  MenuFetchException,
+  MenuParseException,
+  BaseRestaurantException,
+} from "../errors";
+import { HaksikScraper } from "../repositories/scrapers/haksikScraper";
+import { DodamScraper } from "../repositories/scrapers/dodamScraper";
+import { FacultyScraper } from "../repositories/scrapers/facultyScraper";
+import { DormitoryScraper } from "../repositories/scrapers/dormitoryScraper";
+import { FoodCrawlerSettings, defaultSettings } from "../config";
 
 export class FoodScrapingService {
   constructor(
@@ -24,32 +28,37 @@ export class FoodScrapingService {
       return new FacultyScraper(this.settings);
     }
     if (restaurantType === RestaurantType.DORMITORY) {
-      return new DormitoryScraper(this.settings.dormitoryBaseUrl, this.settings.timeoutMs);
+      return new DormitoryScraper(
+        this.settings.dormitoryBaseUrl,
+        this.settings.timeoutMs,
+      );
     }
     throw new Error(`Unsupported restaurant: ${restaurantType}`);
   }
 
-  async scrapeRawMenu(restaurantType: RestaurantType, date: string): Promise<RawMenuData | RawMenuData[]> {
+  async scrapeRawMenu(
+    restaurantType: RestaurantType,
+    date: string,
+  ): Promise<RawMenuData> {
     try {
       const scraper = this.createScraper(restaurantType);
       return await scraper.scrapeMenu(date);
     } catch (err) {
       if (err instanceof BaseRestaurantException) throw err;
-      throw new MenuFetchException(date, restaurantType, 'scrape 실패', err as unknown);
+      throw new MenuFetchException(
+        date,
+        restaurantType,
+        "scrape 실패",
+        err as unknown,
+      );
     }
   }
 
-  async scrapeAndParseMenu(restaurantType: RestaurantType, date: string): Promise<ParsedMenuData | ParsedMenuData[]> {
+  async scrapeAndParseMenu(
+    restaurantType: RestaurantType,
+    date: string,
+  ): Promise<ParsedMenuData> {
     const raw = await this.scrapeRawMenu(restaurantType, date);
-
-    if (Array.isArray(raw)) {
-      const parsedList: ParsedMenuData[] = [];
-      for (const item of raw) {
-        parsedList.push(await this.parse(item));
-      }
-      return parsedList;
-    }
-
     return this.parse(raw);
   }
 
@@ -58,7 +67,12 @@ export class FoodScrapingService {
       return await this.parser.parseMenu(raw);
     } catch (err) {
       if (err instanceof BaseRestaurantException) throw err;
-      throw new MenuParseException(raw.date, raw.restaurant, 'parse 실패', err as unknown);
+      throw new MenuParseException(
+        raw.date,
+        raw.restaurant,
+        "parse 실패",
+        err as unknown,
+      );
     }
   }
 }

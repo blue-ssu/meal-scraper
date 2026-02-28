@@ -1,69 +1,125 @@
-import axios from 'axios';
-import { MenuScraper } from '../../interfaces';
-import { RestaurantType, RawMenuData } from '../../domain';
-import { MenuFetchException } from '../../errors';
-import { make2dFromHtml } from '../../utils/parsing';
+import axios from "axios";
+import { MenuScraper } from "../../interfaces";
+import { RestaurantType, RawMenuData } from "../../domain";
+import { MenuFetchException } from "../../errors";
+import { make2dFromHtml } from "../../utils/parsing";
 
 export class DormitoryScraper implements MenuScraper {
-  constructor(private readonly baseUrl: string, private readonly timeoutMs: number = 15000) {}
+  constructor(
+    private readonly baseUrl: string,
+    private readonly timeoutMs: number = 15000,
+  ) {}
 
-  async scrapeMenu(date: string): Promise<RawMenuData[]> {
+  async scrapeMenu(date: string): Promise<RawMenuData> {
     const dt = parseDate(date);
+    const targetDate = formatDateKey(dt);
 
-    const res = await axios.get(this.baseUrl, {
+    const res = await axios.get<ArrayBuffer>(this.baseUrl, {
       params: {
-        viewform: 'B0001_foodboard_list',
+        viewform: "B0001_foodboard_list",
         gyear: dt.getFullYear(),
         gmonth: dt.getMonth() + 1,
         gday: dt.getDate(),
       },
       timeout: this.timeoutMs,
-      responseType: 'text',
+      responseType: "arraybuffer",
       validateStatus: (s) => s >= 200 && s < 300,
     });
 
     try {
-      const matrix = make2dFromHtml(String(res.data));
+      const bytes = new Uint8Array(res.data);
+      const encoding = detectEncoding({
+        data: res.data,
+        headers: res.headers as Record<string, string | undefined>,
+      });
+      const html = new TextDecoder(encoding).decode(bytes);
+      const matrix = make2dFromHtml(html);
       const parsedRows = structureRows(matrix);
-      const result: RawMenuData[] = [];
+
+      let matched: RawMenuData | undefined;
 
       for (const row of parsedRows) {
-        const dateStr = parseDateToken(row['날짜']);
+        const dateStr = parseDateToken(row["날짜"]);
         if (!dateStr) continue;
 
         const menuTexts = extractMenuTexts(row);
         if (Object.keys(menuTexts).length === 0) continue;
 
-        result.push({
+        if (dateStr !== targetDate) continue;
+
+        matched = {
           date: dateStr,
           restaurant: RestaurantType.DORMITORY,
           menuTexts,
-        });
+        };
+        break;
       }
 
-      return result.slice(0, 7);
+      if (!matched) {
+        throw new MenuFetchException(
+          date,
+          RestaurantType.DORMITORY,
+          "요청한 날짜의 메뉴가 없습니다",
+        );
+      }
+
+      return matched;
     } catch (err) {
-      throw new MenuFetchException(date, RestaurantType.DORMITORY, '기숙사 메뉴 파싱 실패', err as unknown);
+      throw new MenuFetchException(
+        date,
+        RestaurantType.DORMITORY,
+        "기숙사 메뉴 파싱 실패",
+        err as unknown,
+      );
     }
   }
 }
 
+const detectEncoding = (res: {
+  data: ArrayBuffer;
+  headers: Record<string, string | undefined>;
+}): string => {
+  const header = String(res.headers["content-type"] ?? "").toLowerCase();
+  const headerCharset = header.match(/charset=([a-z0-9-]+)/i)?.[1];
+  if (headerCharset) {
+    const lower = headerCharset.toLowerCase();
+    if (lower.includes("utf-8") || lower.includes("utf8")) return "utf-8";
+    if (lower.includes("euc-kr") || lower.includes("cp949")) return "euc-kr";
+  }
+
+  const latin1Text = new TextDecoder("latin1").decode(new Uint8Array(res.data));
+  const metaCharset = latin1Text.match(
+    /<meta[^>]*charset\s*=\s*([a-z0-9-]+)/i,
+  )?.[1];
+  if (metaCharset) {
+    const lower = metaCharset.toLowerCase();
+    if (lower.includes("utf-8") || lower.includes("utf8")) return "utf-8";
+    if (lower.includes("euc-kr") || lower.includes("cp949")) return "euc-kr";
+  }
+
+  return "euc-kr";
+};
+
 const parseDate = (date: string): Date => {
-  const y = Number(date.slice(0, 4));
-  const m = Number(date.slice(4, 6));
-  const d = Number(date.slice(6, 8));
-  return new Date(y, m - 1, d);
+  return new Date(date);
+};
+
+const formatDateKey = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}${month}${day}`;
 };
 
 const parseDateToken = (value: string | undefined): string => {
-  if (!value) return '';
-  const clean = value.split(/\s+/)[0].replace(/-/g, '');
+  if (!value) return "";
+  const clean = value.split(/\s+/)[0].replace(/-/g, "");
   if (clean.length === 8) return clean;
   if (clean.length === 4) {
     const year = new Date().getFullYear();
     return `${year}${clean}`;
   }
-  return '';
+  return "";
 };
 
 type RowDict = Record<string, string>;
@@ -71,12 +127,16 @@ type RowDict = Record<string, string>;
 const structureRows = (matrix: string[][]): RowDict[] => {
   if (!matrix.length) return [];
   const headers = matrix[0];
-  const dateCol = headers.findIndex((h) => h === '날짜');
+  const dateCol = headers.findIndex((h) => h === "날짜");
   if (dateCol < 0) return [];
 
   const colMap = new Map<number, string>();
   for (let i = 0; i < headers.length; i++) {
-    if (headers[i] === '조식' || headers[i] === '중식' || headers[i] === '석식') {
+    if (
+      headers[i] === "조식" ||
+      headers[i] === "중식" ||
+      headers[i] === "석식"
+    ) {
       colMap.set(i, headers[i]);
     }
   }
@@ -86,9 +146,9 @@ const structureRows = (matrix: string[][]): RowDict[] => {
     const row = matrix[r];
     if (!row || !row[dateCol]) continue;
 
-    const dict: RowDict = { 날짜: row[dateCol] || '' };
+    const dict: RowDict = { 날짜: row[dateCol] || "" };
     for (const [idx, key] of colMap) {
-      dict[key] = row[idx] || '';
+      dict[key] = row[idx] || "";
     }
     out.push(dict);
   }
@@ -97,16 +157,16 @@ const structureRows = (matrix: string[][]): RowDict[] => {
 
 const extractMenuTexts = (row: RowDict): Record<string, string> => {
   const out: Record<string, string> = {};
-  ['중식', '석식'].forEach((slot) => {
+  ["중식", "석식"].forEach((slot) => {
     const value = row[slot];
     if (!value) return;
     const items = value
-      .split('\r\n')
+      .split("\r\n")
       .map((x) => x.trim())
-      .filter((x) => x.length > 0 && !x.includes('운영'));
+      .filter((x) => x.length > 0 && !x.includes("운영"));
 
     if (items.length > 0) {
-      out[slot] = items.join(' ');
+      out[slot] = items.join(" ");
     }
   });
   return out;

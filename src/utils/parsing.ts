@@ -31,7 +31,8 @@ export const parseTableToDict = (html: string): Record<string, string> => {
       const key = normalizeText($(cells[0]).text());
       if (!key || !slotKeywords.test(key)) return;
 
-      const values = cells.slice(1)
+      const values = cells
+        .slice(1)
         .map((cell) => normalizeText($(cell).text()))
         .filter((value) => value.length > 0)
         .join(" ");
@@ -60,15 +61,22 @@ export const stripStringFromDict = (
 
 export const make2d = (tableHtml: string | null): string[][] => {
   if (!tableHtml) return [];
-  const $ = cheerio.load(tableHtml);
-  const rows = $("tr");
+  let $ = cheerio.load(tableHtml);
+  let rows = $("tr");
+
+  if (!rows.length) {
+    $ = cheerio.load(`<table>${tableHtml}</table>`);
+    rows = $("tr");
+  }
 
   const matrix: string[][] = [];
+  const toSpan = (value: string | undefined): number => {
+    const v = Number.parseInt(value ?? "1", 10);
+    return Number.isNaN(v) || v < 1 ? 1 : v;
+  };
 
   rows.each((rIdx, tr) => {
-    const rowCells = $(tr)
-      .find("th,td")
-      .filter((_, el) => el.parent === tr);
+    const rowCells = $(tr).children("th,td");
 
     if (!matrix[rIdx]) matrix[rIdx] = [];
 
@@ -76,10 +84,9 @@ export const make2d = (tableHtml: string | null): string[][] => {
     rowCells.each((_, cell) => {
       while (matrix[rIdx][cIdx] !== undefined) cIdx += 1;
 
-      const attrs = (cell as any).attribs || {};
       const txt = normalizeText($(cell).text());
-      const colspan = Math.max(1, Number.parseInt(attrs.colspan || "1", 10));
-      const rowspan = Math.max(1, Number.parseInt(attrs.rowspan || "1", 10));
+      const colspan = toSpan($(cell).attr("colspan"));
+      const rowspan = toSpan($(cell).attr("rowspan"));
 
       for (let cc = 0; cc < colspan; cc++) {
         matrix[rIdx][cIdx + cc] = txt;
@@ -104,7 +111,8 @@ export const make2dFromHtml = (html: string): string[][] => {
   const $ = cheerio.load(html);
   const table = $("table.boxstyle02").first();
   if (!table.length) return [];
-  const rows = table.find("tr").toArray();
-  const rowHtml = rows.map((r) => $.html(r) ?? "").join("");
-  return make2d(rowHtml);
+  const tableHtml = table.html();
+  if (!tableHtml) return [];
+
+  return make2d(tableHtml);
 };

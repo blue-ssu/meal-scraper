@@ -33,11 +33,11 @@ export interface FoodCrawlerLibrary {
   scrapeRawMenu: (
     restaurant: RestaurantType,
     date: string,
-  ) => Promise<RawMenuData | RawMenuData[]>;
+  ) => Promise<RawMenuData>;
   scrapeParsedMenu: (
     restaurant: RestaurantType,
     date: string,
-  ) => Promise<ParsedMenuData | ParsedMenuData[]>;
+  ) => Promise<ParsedMenuData>;
 }
 
 export const createFoodCrawlerLibrary = (

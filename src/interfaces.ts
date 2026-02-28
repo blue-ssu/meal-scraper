@@ -1,7 +1,7 @@
 import { RawMenuData, ParsedMenuData, RestaurantType } from './domain';
 
 export interface MenuScraper {
-  scrapeMenu(date: string): Promise<RawMenuData | RawMenuData[]>;
+  scrapeMenu(date: string): Promise<RawMenuData>;
 }
 
 export interface MenuParser {
